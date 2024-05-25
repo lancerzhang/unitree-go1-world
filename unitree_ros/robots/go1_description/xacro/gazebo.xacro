@@ -89,7 +89,7 @@
 
     <!-- <gazebo reference="depthCamera_link_left">
         <sensor name="unitree_camera_left" type="depth_camera">
-            <update_rate>16</update_rate>
+            <update_rate>30</update_rate>
             <always_on>true</always_on>
             <visualize>true</visualize>
             <camera>
