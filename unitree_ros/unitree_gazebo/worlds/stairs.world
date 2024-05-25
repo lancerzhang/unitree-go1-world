@@ -108,9 +108,9 @@
 
         </model>
 
-        <include>
+        <!-- <include>
             <uri>model:///home/lance/catkin_ws/src/gazebo_worlds/gazebo/models/office_small</uri>
-        </include>
+        </include> -->
 
     </world>
 </sdf>

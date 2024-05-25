@@ -37,13 +37,21 @@ To set up your simulation environment, follow these steps:
 
 Once the setup is complete, you can run the simulation as follows:
 
-1. **Launch the Simulation**:
+1. **Launch the default Simulation**:
    - Use the `roslaunch` command to start the simulation with the `robot_simulation.launch` file:
      ```bash
      roslaunch unitree_gazebo robot_simulation.launch
      ```
 
-This will load the default world ("office_small" from `gazebo_worlds`) and start the simulation environment, allowing you to test and develop your robotic applications.
+This will load the default world "earth" and start the simulation environment.
+
+2. **Launch the office_small Simulation**:
+   - Use the `roslaunch` command to start the simulation with the `robot_simulation.launch` file:
+     ```bash
+     roslaunch unitree_gazebo robot_simulation.launch wname:=office_small
+     ```
+
+This will load the world "office_small" from `gazebo_worlds` and start the simulation environment.
 
 ## Reference
 ### Origin Repo [ros_unitree](https://github.com/macc-n/ros_unitree)
