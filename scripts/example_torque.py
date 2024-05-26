@@ -5,66 +5,53 @@ import time
 import math
 import numpy as np
 import os
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'library', 'unitree_legged_sdk-3.8.0', 'lib', 'python', 'amd64'))
-import robot_interface as sdk
+import rospy
+from unitree_legged_msgs.msg import MotorCmd, MotorState
 
 if __name__ == '__main__':
+    rospy.init_node('unitree_motor_controller', anonymous=True)
+    pub = rospy.Publisher('/go1_gazebo/FR_thigh_controller/command', MotorCmd, queue_size=10)
+    rate = rospy.Rate(500)  # 500 Hz
 
-    d = {'FR_0':0, 'FR_1':1, 'FR_2':2,
-         'FL_0':3, 'FL_1':4, 'FL_2':5, 
-         'RR_0':6, 'RR_1':7, 'RR_2':8, 
-         'RL_0':9, 'RL_1':10, 'RL_2':11 }
-    PosStopF  = math.pow(10,9)
-    VelStopF  = 16000.0
+    d = {'FR_0': 0, 'FR_1': 1, 'FR_2': 2,
+         'FL_0': 3, 'FL_1': 4, 'FL_2': 5,
+         'RR_0': 6, 'RR_1': 7, 'RR_2': 8,
+         'RL_0': 9, 'RL_1': 10, 'RL_2': 11}
+
+    PosStopF = math.pow(10, 9)
+    VelStopF = 16000.0
     HIGHLEVEL = 0xee
-    LOWLEVEL  = 0xff
-    dt = 0.002
+    LOWLEVEL = 0xff
     sin_count = 0
-
-    udp = sdk.UDP(LOWLEVEL, 8080, "192.168.123.10", 8007)
-    safe = sdk.Safety(sdk.LeggedType.Go1)
-    
-    cmd = sdk.LowCmd()
-    state = sdk.LowState()
-    udp.InitCmdData(cmd)
-
-    Tpi = 0
     motiontime = 0
-    while True:
-        time.sleep(0.002)
+
+    motor_state = MotorState()
+
+    def motor_state_callback(msg):
+        global motor_state
+        motor_state = msg
+
+    rospy.Subscriber('/go1_gazebo/FR_thigh_controller/state', MotorState, motor_state_callback)
+
+    while not rospy.is_shutdown():
         motiontime += 1
 
-        # freq_Hz = 1
         freq_Hz = 2
-        # freq_Hz = 5;
-        freq_rad = freq_Hz * 2* math.pi
-        # t = dt*sin_count
+        freq_rad = freq_Hz * 2 * math.pi
 
-        # print(motiontime)
-        # print(state.imu.rpy[0])
-        
-        
-        udp.Recv()
-        udp.GetRecv(state)
-
-        if( motiontime >= 500):
+        if motiontime >= 500:
             sin_count += 1
-            torque = (0 - state.motorState[d['FR_1']].q)*10.0 + (0 - state.motorState[d['FR_1']].dq)*1.0
-            # torque = (0 - state.motorState[d['FR_1']].q)*20.0 + (0 - state.motorState[d['FR_1']].dq)*2.0
-            # torque = 2 * sin(t*freq_rad)
+            torque = (0 - motor_state.q) * 10.0 + (0 - motor_state.dq) * 1.0
             torque = np.fmin(np.fmax(torque, -5.0), 5.0)
-            # torque = np.fmin(np.fmax(torque, -15.0), 15.0)
 
+            motor_cmd = MotorCmd()
+            motor_cmd.mode = LOWLEVEL
+            motor_cmd.q = PosStopF
+            motor_cmd.dq = VelStopF
+            motor_cmd.Kp = 0
+            motor_cmd.Kd = 0
+            motor_cmd.tau = torque
 
-            cmd.motorCmd[d['FR_1']].q = PosStopF
-            cmd.motorCmd[d['FR_1']].dq = VelStopF
-            cmd.motorCmd[d['FR_1']].Kp = 0
-            cmd.motorCmd[d['FR_1']].Kd = 0
-            cmd.motorCmd[d['FR_1']].tau = torque
-        
-        if(motiontime > 10):
-            safe.PowerProtect(cmd, state, 1)
+            pub.publish(motor_cmd)
 
-        udp.SetSend(cmd)
-        udp.Send()
+        rate.sleep()

@@ -6,19 +6,19 @@ sudo ./devel/lib/unitree_guide/junior_ctrl
 
 ## Print topic type
 ```bash
-rostopic type /go1_gazebo/FL_calf_controller/command
+rostopic type /go1_gazebo/FR_thigh_controller/command
 unitree_legged_msgs/MotorCmd
 
-rostopic type /go1_gazebo/FL_calf_controller/joint_wrench
+rostopic type /go1_gazebo/FR_thigh_controller/joint_wrench
 geometry_msgs/WrenchStamped
 
-rostopic type /go1_gazebo/FL_calf_controller/state
+rostopic type /go1_gazebo/FR_thigh_controller/state
 unitree_legged_msgs/MotorState
 ```
 
 ## Print topic content
 ```bash
-rostopic echo /go1_gazebo/FL_calf_controller/command
+rostopic echo /go1_gazebo/FR_thigh_controller/command
 ```
 
 ### Initial state
