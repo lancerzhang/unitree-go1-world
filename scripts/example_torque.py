@@ -10,48 +10,48 @@ from unitree_legged_msgs.msg import MotorCmd, MotorState
 
 if __name__ == '__main__':
     rospy.init_node('unitree_motor_controller', anonymous=True)
-    pub = rospy.Publisher('/go1_gazebo/FR_thigh_controller/command', MotorCmd, queue_size=10)
-    rate = rospy.Rate(500)  # 500 Hz
+    
+    joint_names = ['FR_hip', 'FR_thigh', 'FR_calf', 
+                   'FL_hip', 'FL_thigh', 'FL_calf', 
+                   'RR_hip', 'RR_thigh', 'RR_calf', 
+                   'RL_hip', 'RL_thigh', 'RL_calf']
+    
+    publishers = {name: rospy.Publisher(f'/go1_gazebo/{name}_controller/command', MotorCmd, queue_size=10) for name in joint_names}
+    motor_states = {name: MotorState() for name in joint_names}
 
-    d = {'FR_0': 0, 'FR_1': 1, 'FR_2': 2,
-         'FL_0': 3, 'FL_1': 4, 'FL_2': 5,
-         'RR_0': 6, 'RR_1': 7, 'RR_2': 8,
-         'RL_0': 9, 'RL_1': 10, 'RL_2': 11}
+    def create_callback(name):
+        def callback(msg):
+            global motor_states
+            motor_states[name] = msg
+        return callback
+
+    subscribers = [rospy.Subscriber(f'/go1_gazebo/{name}_controller/state', MotorState, create_callback(name)) for name in joint_names]
+
+    rate = rospy.Rate(500)  # 500 Hz
 
     PosStopF = math.pow(10, 9)
     VelStopF = 16000.0
-    HIGHLEVEL = 0xee
-    LOWLEVEL = 0xff
     sin_count = 0
     motiontime = 0
-
-    motor_state = MotorState()
-
-    def motor_state_callback(msg):
-        global motor_state
-        motor_state = msg
-
-    rospy.Subscriber('/go1_gazebo/FR_thigh_controller/state', MotorState, motor_state_callback)
 
     while not rospy.is_shutdown():
         motiontime += 1
 
-        freq_Hz = 2
-        freq_rad = freq_Hz * 2 * math.pi
-
         if motiontime >= 500:
             sin_count += 1
-            torque = (0 - motor_state.q) * 10.0 + (0 - motor_state.dq) * 1.0
-            torque = np.fmin(np.fmax(torque, -5.0), 5.0)
+            for name in joint_names:
+                state = motor_states[name]
+                torque = (0 - state.q) * 10.0 + (0 - state.dq) * 1.0
+                torque = np.fmin(np.fmax(torque, -5.0), 5.0)
 
-            motor_cmd = MotorCmd()
-            motor_cmd.mode = LOWLEVEL
-            motor_cmd.q = PosStopF
-            motor_cmd.dq = VelStopF
-            motor_cmd.Kp = 0
-            motor_cmd.Kd = 0
-            motor_cmd.tau = torque
+                motor_cmd = MotorCmd()
+                motor_cmd.mode = 0xff
+                motor_cmd.q = PosStopF
+                motor_cmd.dq = VelStopF
+                motor_cmd.Kp = 0
+                motor_cmd.Kd = 0
+                motor_cmd.tau = torque
 
-            pub.publish(motor_cmd)
+                publishers[name].publish(motor_cmd)
 
         rate.sleep()
