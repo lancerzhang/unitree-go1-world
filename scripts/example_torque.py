@@ -8,6 +8,8 @@ import os
 import rospy
 from unitree_legged_msgs.msg import MotorCmd, MotorState
 
+robot_name='go1'
+
 def create_motor_cmd(mode, q, dq, tau, Kp, Kd):
     motor_cmd = MotorCmd()
     motor_cmd.mode = mode
@@ -27,7 +29,7 @@ if __name__ == '__main__':
         'thigh': ['FR_thigh', 'FL_thigh', 'RR_thigh', 'RL_thigh']
     }
     
-    publishers = {name: rospy.Publisher(f'/go1_gazebo/{name}_controller/command', MotorCmd, queue_size=10) for group in joint_groups.values() for name in group}
+    publishers = {name: rospy.Publisher(f'/{robot_name}_gazebo/{name}_controller/command', MotorCmd, queue_size=10) for group in joint_groups.values() for name in group}
     motor_states = {name: MotorState() for group in joint_groups.values() for name in group}
 
     def create_callback(name):
@@ -36,7 +38,7 @@ if __name__ == '__main__':
             motor_states[name] = msg
         return callback
 
-    subscribers = [rospy.Subscriber(f'/go1_gazebo/{name}_controller/state', MotorState, create_callback(name)) for group in joint_groups.values() for name in group]
+    subscribers = [rospy.Subscriber(f'/{robot_name}_gazebo/{name}_controller/state', MotorState, create_callback(name)) for group in joint_groups.values() for name in group]
 
     rate = rospy.Rate(500)  # 500 Hz
 
