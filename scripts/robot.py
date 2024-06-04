@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
-import rospy
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge
-import cv2
 import time
+
+import rospy
+from cv_bridge import CvBridge
+from sensor_msgs.msg import Image
+
 
 class CameraProcessor:
     def __init__(self):

@@ -1,14 +1,10 @@
 #!/usr/bin/python
 
-import sys
-import time
-import math
-import numpy as np
-import os
 import rospy
 from unitree_legged_msgs.msg import MotorCmd, MotorState
 
-robot_name='go1'
+robot_name = 'go1'
+
 
 def create_motor_cmd(mode, q, dq, tau, Kp, Kd):
     motor_cmd = MotorCmd()
@@ -20,25 +16,31 @@ def create_motor_cmd(mode, q, dq, tau, Kp, Kd):
     motor_cmd.Kd = Kd
     return motor_cmd
 
+
 if __name__ == '__main__':
     rospy.init_node('unitree_motor_controller', anonymous=True)
-    
+
     joint_groups = {
         'calf': ['FR_calf', 'FL_calf', 'RR_calf', 'RL_calf'],
         'hip': ['FR_hip', 'FL_hip', 'RR_hip', 'RL_hip'],
         'thigh': ['FR_thigh', 'FL_thigh', 'RR_thigh', 'RL_thigh']
     }
-    
-    publishers = {name: rospy.Publisher(f'/{robot_name}_gazebo/{name}_controller/command', MotorCmd, queue_size=10) for group in joint_groups.values() for name in group}
+
+    publishers = {name: rospy.Publisher(f'/{robot_name}_gazebo/{name}_controller/command', MotorCmd, queue_size=10) for
+                  group in joint_groups.values() for name in group}
     motor_states = {name: MotorState() for group in joint_groups.values() for name in group}
+
 
     def create_callback(name):
         def callback(msg):
             global motor_states
             motor_states[name] = msg
+
         return callback
 
-    subscribers = [rospy.Subscriber(f'/{robot_name}_gazebo/{name}_controller/state', MotorState, create_callback(name)) for group in joint_groups.values() for name in group]
+
+    subscribers = [rospy.Subscriber(f'/{robot_name}_gazebo/{name}_controller/state', MotorState, create_callback(name))
+                   for group in joint_groups.values() for name in group]
 
     rate = rospy.Rate(500)  # 500 Hz
 
