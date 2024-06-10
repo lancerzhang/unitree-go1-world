@@ -3,6 +3,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 from unitree_legged_msgs.msg import MotorCmd, MotorState, IMU
+from std_srvs.srv import Empty
 
 go1_Hip_max = 1.047
 go1_Hip_min = -1.047
@@ -44,6 +45,10 @@ class Go1Env(gym.Env):
 
         self.current_imu = None
 
+        # Initialize Gazebo reset service
+        rospy.wait_for_service('/gazebo/reset_simulation')
+        self.reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
+
     def create_callback(self, name):
         def callback(msg):
             self.motor_states[name] = msg
@@ -56,7 +61,17 @@ class Go1Env(gym.Env):
     def reset(self, seed=None, options=None):
         # Reset the environment to an initial state
         super().reset(seed=seed)
-        rospy.sleep(1.0)
+        self.reset_simulation()  # Reset the Gazebo simulation
+
+        # Ensure ROS time is stable after reset
+        stable_time = False
+        while not stable_time:
+            try:
+                rospy.sleep(0.1)
+                stable_time = True
+            except rospy.exceptions.ROSTimeMovedBackwardsException:
+                stable_time = False
+
         obs = self._get_obs()
         info = {}
         return obs, info
@@ -76,8 +91,12 @@ class Go1Env(gym.Env):
         reward = self._compute_reward(obs, action)
 
         # Check if done
-        terminated = False
+        terminated = self._is_fallen()
         truncated = False
+
+        if terminated:
+            reward -= 100  # Penalize for falling
+            self.reset()  # Reset the environment
 
         # Additional info
         info = {}
@@ -109,6 +128,14 @@ class Go1Env(gym.Env):
     def _compute_reward(self, obs, action):
         # Define a reward function
         return -np.sum(np.square(action))  # Simple reward for minimizing action effort
+
+    def _is_fallen(self):
+        # Check if the robot has fallen based on IMU data
+        if self.current_imu:
+            roll, pitch = self.current_imu.rpy[:2]
+            if abs(roll) > 1.0 or abs(pitch) > 1.0:  # Thresholds for determining if the robot has fallen
+                return True
+        return False
 
     def create_motor_cmd(self, mode, q, dq, tau, Kp, Kd):
         motor_cmd = MotorCmd()
