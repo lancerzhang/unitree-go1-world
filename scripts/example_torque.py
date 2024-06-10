@@ -9,11 +9,11 @@ robot_name = 'go1'
 def create_motor_cmd(mode, q, dq, tau, Kp, Kd):
     motor_cmd = MotorCmd()
     motor_cmd.mode = mode
-    motor_cmd.q = q
-    motor_cmd.dq = dq
-    motor_cmd.tau = tau
-    motor_cmd.Kp = Kp
-    motor_cmd.Kd = Kd
+    motor_cmd.q = q  # desired angle (unit: radian)
+    motor_cmd.dq = dq  # desired velocity (unit: radian/second)
+    motor_cmd.tau = tau  # desired output torque (unit: N.m)
+    motor_cmd.Kp = Kp  # desired position stiffness (unit: N.m/rad )
+    motor_cmd.Kd = Kd  # desired velocity stiffness (unit: N.m/(rad/s) )
     return motor_cmd
 
 
