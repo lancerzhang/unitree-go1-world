@@ -1,6 +1,6 @@
-import gymnasium
-import numpy as np
 import rospy
+import gymnasium as gym
+import numpy as np
 from gymnasium import spaces
 from unitree_legged_msgs.msg import MotorCmd, MotorState, IMU
 
@@ -11,8 +11,7 @@ go1_Thigh_min = -0.663
 go1_Calf_max = -0.837
 go1_Calf_min = -2.721
 
-
-class Go1Env(gymnasium.Env):
+class Go1Env(gym.Env):
     def __init__(self):
         super(Go1Env, self).__init__()
         rospy.init_node('go1_gym_env', anonymous=True)
@@ -54,10 +53,13 @@ class Go1Env(gymnasium.Env):
     def imu_callback(self, msg):
         self.current_imu = msg
 
-    def reset(self):
+    def reset(self, seed=None, options=None):
         # Reset the environment to an initial state
+        super().reset(seed=seed)
         rospy.sleep(1.0)
-        return self._get_obs()
+        obs = self._get_obs()
+        info = {}
+        return obs, info
 
     def step(self, action):
         # Apply action
@@ -74,9 +76,13 @@ class Go1Env(gymnasium.Env):
         reward = self._compute_reward(obs, action)
 
         # Check if done
-        done = False
+        terminated = False
+        truncated = False
 
-        return obs, reward, done, {}
+        # Additional info
+        info = {}
+
+        return obs, float(reward), terminated, truncated, info
 
     def _get_obs(self):
         obs = []
@@ -91,8 +97,14 @@ class Go1Env(gymnasium.Env):
             obs.extend(imu_data.gyroscope)
             obs.extend(imu_data.accelerometer)
             obs.extend(imu_data.rpy)
+        else:
+            obs.extend([0.0] * 4)  # quaternion
+            obs.extend([0.0] * 3)  # gyroscope
+            obs.extend([0.0] * 3)  # accelerometer
+            obs.extend([0.0] * 3)  # rpy
 
-        return np.array(obs, dtype=np.float32)
+        # Ensure the observation array has the correct length
+        return np.array(obs, dtype=np.float32)[:34]
 
     def _compute_reward(self, obs, action):
         # Define a reward function
