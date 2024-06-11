@@ -2,8 +2,9 @@ import rospy
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
-from unitree_legged_msgs.msg import MotorCmd, MotorState, IMU
-from std_srvs.srv import Empty
+from sensor_msgs.msg import Imu
+from unitree_legged_msgs.msg import MotorCmd, MotorState
+from transforms3d.euler import quat2euler
 
 go1_Hip_max = 1.047
 go1_Hip_min = -1.047
@@ -30,7 +31,7 @@ class Go1Env(gym.Env):
             for name in group:
                 rospy.Subscriber(f'/go1_gazebo/{name}_controller/state', MotorState, self.create_callback(name))
 
-        rospy.Subscriber('/trunk_imu', IMU, self.imu_callback)
+        rospy.Subscriber('/trunk_imu', Imu, self.imu_callback)
 
         self.rate = rospy.Rate(500)  # 500 Hz
 
@@ -44,10 +45,7 @@ class Go1Env(gym.Env):
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(12 * 2 + 10,), dtype=np.float32)
 
         self.current_imu = None
-
-        # Initialize Gazebo reset service
-        rospy.wait_for_service('/gazebo/reset_simulation')
-        self.reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
+        self.flipped_threshold = 1.0  # Threshold to determine if the robot is flipped
 
     def create_callback(self, name):
         def callback(msg):
@@ -61,17 +59,7 @@ class Go1Env(gym.Env):
     def reset(self, seed=None, options=None):
         # Reset the environment to an initial state
         super().reset(seed=seed)
-        self.reset_simulation()  # Reset the Gazebo simulation
-
-        # Ensure ROS time is stable after reset
-        stable_time = False
-        while not stable_time:
-            try:
-                rospy.sleep(0.1)
-                stable_time = True
-            except rospy.exceptions.ROSTimeMovedBackwardsException:
-                stable_time = False
-
+        rospy.sleep(1.0)
         obs = self._get_obs()
         info = {}
         return obs, info
@@ -91,15 +79,14 @@ class Go1Env(gym.Env):
         reward = self._compute_reward(obs, action)
 
         # Check if done
-        terminated = self._is_fallen()
+        terminated = self._is_flipped()
         truncated = False
-
-        if terminated:
-            reward -= 100  # Penalize for falling
-            self.reset()  # Reset the environment
 
         # Additional info
         info = {}
+
+        if terminated:
+            obs, info = self.reset()
 
         return obs, float(reward), terminated, truncated, info
 
@@ -112,10 +99,11 @@ class Go1Env(gym.Env):
 
         if self.current_imu:
             imu_data = self.current_imu
-            obs.extend(imu_data.quaternion)
-            obs.extend(imu_data.gyroscope)
-            obs.extend(imu_data.accelerometer)
-            obs.extend(imu_data.rpy)
+            obs.extend([imu_data.orientation.x, imu_data.orientation.y, imu_data.orientation.z, imu_data.orientation.w])
+            obs.extend([imu_data.angular_velocity.x, imu_data.angular_velocity.y, imu_data.angular_velocity.z])
+            obs.extend([imu_data.linear_acceleration.x, imu_data.linear_acceleration.y, imu_data.linear_acceleration.z])
+            rpy = quat2euler([imu_data.orientation.w, imu_data.orientation.x, imu_data.orientation.y, imu_data.orientation.z])
+            obs.extend(rpy)
         else:
             obs.extend([0.0] * 4)  # quaternion
             obs.extend([0.0] * 3)  # gyroscope
@@ -129,11 +117,13 @@ class Go1Env(gym.Env):
         # Define a reward function
         return -np.sum(np.square(action))  # Simple reward for minimizing action effort
 
-    def _is_fallen(self):
-        # Check if the robot has fallen based on IMU data
+    def _is_flipped(self):
         if self.current_imu:
-            roll, pitch = self.current_imu.rpy[:2]
-            if abs(roll) > 1.0 or abs(pitch) > 1.0:  # Thresholds for determining if the robot has fallen
+            rpy = quat2euler([self.current_imu.orientation.w, self.current_imu.orientation.x, self.current_imu.orientation.y, self.current_imu.orientation.z])
+            rospy.loginfo(f'rpy {rpy}')
+            roll, pitch, yaw = rpy
+            if abs(roll) > self.flipped_threshold or abs(pitch) > self.flipped_threshold:
+                rospy.loginfo(f'is_flipped')
                 return True
         return False
 
@@ -146,3 +136,8 @@ class Go1Env(gym.Env):
         motor_cmd.Kp = Kp
         motor_cmd.Kd = Kd
         return motor_cmd
+
+if __name__ == "__main__":
+    rospy.init_node('go1_env_test')
+    env = Go1Env()
+    rospy.spin()  # Keep the node running
