@@ -5,6 +5,7 @@ from gymnasium import spaces
 from sensor_msgs.msg import Imu
 from unitree_legged_msgs.msg import MotorCmd, MotorState
 from transforms3d.euler import quat2euler
+from std_srvs.srv import Empty
 
 go1_Hip_max = 1.047
 go1_Hip_min = -1.047
@@ -32,6 +33,7 @@ class Go1Env(gym.Env):
                 rospy.Subscriber(f'/go1_gazebo/{name}_controller/state', MotorState, self.create_callback(name))
 
         rospy.Subscriber('/trunk_imu', Imu, self.imu_callback)
+        self.reset_world_service = rospy.ServiceProxy('/gazebo/reset_world', Empty)
 
         self.rate = rospy.Rate(500)  # 500 Hz
 
@@ -57,9 +59,7 @@ class Go1Env(gym.Env):
         self.current_imu = msg
 
     def reset(self, seed=None, options=None):
-        # Reset the environment to an initial state
-        super().reset(seed=seed)
-        rospy.sleep(1.0)
+        self.reset_world_service()
         obs = self._get_obs()
         info = {}
         return obs, info
@@ -120,7 +120,7 @@ class Go1Env(gym.Env):
     def _is_flipped(self):
         if self.current_imu:
             rpy = quat2euler([self.current_imu.orientation.w, self.current_imu.orientation.x, self.current_imu.orientation.y, self.current_imu.orientation.z])
-            rospy.loginfo(f'rpy {rpy}')
+            # rospy.loginfo(f'rpy {rpy}')
             roll, pitch, yaw = rpy
             if abs(roll) > self.flipped_threshold or abs(pitch) > self.flipped_threshold:
                 rospy.loginfo(f'is_flipped')
