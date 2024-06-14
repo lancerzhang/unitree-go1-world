@@ -60,6 +60,7 @@ class Go1Env(gym.Env):
 
     def reset(self, seed=None, options=None):
         self.reset_world_service()
+        rospy.sleep(1)  # Wait for the reset to complete
         obs = self._get_obs()
         info = {}
         return obs, info
@@ -91,27 +92,25 @@ class Go1Env(gym.Env):
         return obs, float(reward), terminated, truncated, info
 
     def _get_obs(self):
-        obs = []
+        obs = [0.0] * 34  # Ensure the observation array has the correct length
+        idx = 0
         for group in self.joint_groups.values():
             for name in group:
                 state = self.motor_states[name]
-                obs.extend([state.q, state.dq])
+                obs[idx:idx+2] = [state.q, state.dq]
+                idx += 2
 
         if self.current_imu:
             imu_data = self.current_imu
-            obs.extend([imu_data.orientation.x, imu_data.orientation.y, imu_data.orientation.z, imu_data.orientation.w])
-            obs.extend([imu_data.angular_velocity.x, imu_data.angular_velocity.y, imu_data.angular_velocity.z])
-            obs.extend([imu_data.linear_acceleration.x, imu_data.linear_acceleration.y, imu_data.linear_acceleration.z])
+            obs[idx:idx+4] = [imu_data.orientation.x, imu_data.orientation.y, imu_data.orientation.z, imu_data.orientation.w]
+            idx += 4
+            obs[idx:idx+3] = [imu_data.angular_velocity.x, imu_data.angular_velocity.y, imu_data.angular_velocity.z]
+            idx += 3
+            obs[idx:idx+3] = [imu_data.linear_acceleration.x, imu_data.linear_acceleration.y, imu_data.linear_acceleration.z]
+            idx += 3
             rpy = quat2euler([imu_data.orientation.w, imu_data.orientation.x, imu_data.orientation.y, imu_data.orientation.z])
-            obs.extend(rpy)
-        else:
-            obs.extend([0.0] * 4)  # quaternion
-            obs.extend([0.0] * 3)  # gyroscope
-            obs.extend([0.0] * 3)  # accelerometer
-            obs.extend([0.0] * 3)  # rpy
-
-        # Ensure the observation array has the correct length
-        return np.array(obs, dtype=np.float32)[:34]
+            obs[idx:idx+3] = rpy
+        return np.array(obs, dtype=np.float32)
 
     def _compute_reward(self, obs, action):
         # Define a reward function
