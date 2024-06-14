@@ -60,6 +60,7 @@ class Go1Env(gym.Env):
 
     def reset(self, seed=None, options=None):
         self.reset_world_service()
+        rospy.sleep(1)  # Wait for the reset to complete
         obs = self._get_obs()
         info = {}
         return obs, info
