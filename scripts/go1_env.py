@@ -8,7 +8,7 @@ from transforms3d.euler import quat2euler
 from unitree_legged_msgs.msg import MotorCmd, MotorState
 
 # Import the utility functions
-from utils import check_messages, is_flipped, create_motor_cmd
+from utils import check_messages, is_flipped, create_motor_cmd, reset_env
 
 go1_Hip_max = 1.047
 go1_Hip_min = -1.047
@@ -72,11 +72,7 @@ class Go1Env(gym.Env):
         self.last_imu_time = rospy.Time.now()
 
     def reset(self, seed=None, options=None):
-        self.reset_world_service()
-        rospy.sleep(1)  # Wait for the reset to complete
-        obs = self._get_obs()
-        info = {}
-        return obs, info
+        return reset_env(self)
 
     def step(self, action):
         # Apply action
@@ -87,7 +83,7 @@ class Go1Env(gym.Env):
         self.rate.sleep()
 
         # Get observation
-        obs = self._get_obs()
+        obs = self.get_obs()
 
         # Calculate reward
         reward = self._compute_reward(obs, action)
@@ -101,7 +97,7 @@ class Go1Env(gym.Env):
 
         return obs, float(reward), terminated, truncated, info
 
-    def _get_obs(self):
+    def get_obs(self):
         obs = []
         for group in self.joint_groups.values():
             for name in group:

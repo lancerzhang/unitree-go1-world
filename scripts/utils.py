@@ -16,8 +16,8 @@ def create_motor_cmd(mode, q, dq, tau, Kp, Kd):
 
 def check_messages(env, event):
     current_time = rospy.Time.now()
-    motor_state_timeout = rospy.Duration(2.0)  # 2 seconds timeout
-    imu_timeout = rospy.Duration(2.0)  # 2 seconds timeout
+    motor_state_timeout = rospy.Duration(2)  # 2 seconds timeout
+    imu_timeout = rospy.Duration(2)  # 2 seconds timeout
 
     for name, last_time in env.last_motor_state_time.items():
         if current_time - last_time > motor_state_timeout:
@@ -27,6 +27,7 @@ def check_messages(env, event):
     if current_time - env.last_imu_time > imu_timeout:
         rospy.logerr("IMU state not received for 2 seconds, stopping the program.")
         rospy.signal_shutdown("IMU state timeout")
+
 
 def is_flipped(env):
     if env.current_imu:
@@ -48,3 +49,25 @@ def is_flipped(env):
                 del env.flip_start_time
 
     return False
+
+
+def reset_env(env):
+    env.reset_world_service()
+    rospy.sleep(1)  # Wait for the reset to complete
+
+    # Reset joint positions
+    hip_positions = [0.0] * 4
+    thigh_positions = [0.67] * 4
+    calf_positions = [-1.3] * 4
+
+    # Publish the reset positions
+    for i, group in enumerate(env.joint_groups.values()):
+        positions = hip_positions if 'hip' in group[0] else thigh_positions if 'thigh' in group[0] else calf_positions
+        for j, name in enumerate(group):
+            env.publishers[name].publish(create_motor_cmd(10, positions[j], 0.0, 0.0, 300.0, 15.0))
+
+    rospy.sleep(1)  # Wait for the positions to be set
+
+    obs = env.get_obs()
+    info = {}
+    return obs, info
