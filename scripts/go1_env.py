@@ -1,11 +1,11 @@
-import rospy
 import gymnasium as gym
 import numpy as np
+import rospy
 from gymnasium import spaces
 from sensor_msgs.msg import Imu
-from unitree_legged_msgs.msg import MotorCmd, MotorState
-from transforms3d.euler import quat2euler
 from std_srvs.srv import Empty
+from transforms3d.euler import quat2euler
+from unitree_legged_msgs.msg import MotorCmd, MotorState
 
 go1_Hip_max = 1.047
 go1_Hip_min = -1.047
@@ -14,15 +14,16 @@ go1_Thigh_min = -0.663
 go1_Calf_max = -0.837
 go1_Calf_min = -2.721
 
+
 class Go1Env(gym.Env):
     def __init__(self):
         super(Go1Env, self).__init__()
         rospy.init_node('go1_gym_env', anonymous=True)
 
         self.joint_groups = {
-            'calf': ['FR_calf', 'FL_calf', 'RR_calf', 'RL_calf'],
             'hip': ['FR_hip', 'FL_hip', 'RR_hip', 'RL_hip'],
-            'thigh': ['FR_thigh', 'FL_thigh', 'RR_thigh', 'RL_thigh']
+            'thigh': ['FR_thigh', 'FL_thigh', 'RR_thigh', 'RL_thigh'],
+            'calf': ['FR_calf', 'FL_calf', 'RR_calf', 'RL_calf']
         }
         self.publishers = {name: rospy.Publisher(f'/go1_gazebo/{name}_controller/command', MotorCmd, queue_size=10) for
                            group in self.joint_groups.values() for name in group}
@@ -39,9 +40,11 @@ class Go1Env(gym.Env):
 
         # Define action and observation space
         # Actions: desired angles for all 12 joints
-        self.action_space = spaces.Box(low=np.array([go1_Hip_min, go1_Thigh_min, go1_Calf_min] * 4),
-                                       high=np.array([go1_Hip_max, go1_Thigh_max, go1_Calf_max] * 4),
-                                       dtype=np.float32)
+        self.action_space = spaces.Box(
+            high=np.array([go1_Hip_max] * 4 + [go1_Thigh_max] * 4 + [go1_Calf_max] * 4),
+            low=np.array([go1_Hip_min] * 4 + [go1_Thigh_min] * 4 + [go1_Calf_min] * 4),
+            dtype=np.float32
+        )
 
         # Observations: motor states (position, velocity) + IMU data
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(12 * 2 + 10,), dtype=np.float32)
@@ -103,7 +106,8 @@ class Go1Env(gym.Env):
             obs.extend([imu_data.orientation.x, imu_data.orientation.y, imu_data.orientation.z, imu_data.orientation.w])
             obs.extend([imu_data.angular_velocity.x, imu_data.angular_velocity.y, imu_data.angular_velocity.z])
             obs.extend([imu_data.linear_acceleration.x, imu_data.linear_acceleration.y, imu_data.linear_acceleration.z])
-            rpy = quat2euler([imu_data.orientation.w, imu_data.orientation.x, imu_data.orientation.y, imu_data.orientation.z])
+            rpy = quat2euler(
+                [imu_data.orientation.w, imu_data.orientation.x, imu_data.orientation.y, imu_data.orientation.z])
             obs.extend(rpy)
         else:
             obs.extend([0.0] * 4)  # quaternion
@@ -120,7 +124,9 @@ class Go1Env(gym.Env):
 
     def _is_flipped(self):
         if self.current_imu:
-            rpy = quat2euler([self.current_imu.orientation.w, self.current_imu.orientation.x, self.current_imu.orientation.y, self.current_imu.orientation.z])
+            rpy = quat2euler(
+                [self.current_imu.orientation.w, self.current_imu.orientation.x, self.current_imu.orientation.y,
+                 self.current_imu.orientation.z])
             # rospy.loginfo(f'rpy {rpy}')
             roll, pitch, yaw = rpy
             if abs(roll) > self.flipped_threshold or abs(pitch) > self.flipped_threshold:
@@ -137,6 +143,7 @@ class Go1Env(gym.Env):
         motor_cmd.Kp = Kp
         motor_cmd.Kd = Kd
         return motor_cmd
+
 
 if __name__ == "__main__":
     rospy.init_node('go1_env_test')
