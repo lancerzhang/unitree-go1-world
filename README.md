@@ -3,15 +3,27 @@
 
 Welcome to the `ros-go1-world` repository, a collection of simulation worlds for the ROS (Robot Operating System) Gazebo simulator. This package includes a set of worlds that have been tailored for use with the `unitree_gazebo` package, enabling realistic and versatile simulation environments for robot simulation.
 
-## Contents
-
-- **Overview**: Introduction to the `ros-go1-world` package.
-- **Setup**: Step-by-step instructions for setting up the simulation environment.
-- **Usage**: How to run the simulation with the provided worlds.
-
 ## Overview
 
 The `ros-go1-world` package is designed to work seamlessly with the `unitree_gazebo` package, providing a rich set of simulation environments for testing and developing robotic applications. It includes a variety of worlds, each offering unique challenges and scenarios for robot simulation.
+
+## Settings
+
+### PyCharm
+In PyCharm start window, select "Create Desktop Entry".
+```shell
+sudo nano /usr/share/applications/jetbrains-pycharm.desktop
+```
+Update the "Exec" line to below. (Otherwise it can't find the rospy package in venv)
+```text
+[Desktop Entry]
+...
+Exec=bash -i -c "~/Documents/pycharm-community-2024.1.1/bin/pycharm.sh"
+...
+```
+
+### Virtual environment
+Create a virtual environment in PyCharm and check "Inherit global site-packages" (Which will includes rospy)
 
 ## Setup
 
