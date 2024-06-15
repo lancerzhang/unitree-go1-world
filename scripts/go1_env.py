@@ -146,13 +146,23 @@ class Go1Env(gym.Env):
 
     def _is_flipped(self):
         if self.current_imu:
+            flipped_time_threshold = 10.0  # 10 second threshold
             rpy = quat2euler(
                 [self.current_imu.orientation.w, self.current_imu.orientation.x, self.current_imu.orientation.y,
                  self.current_imu.orientation.z])
-            roll, pitch = rpy[:2]
+            roll, pitch, yaw = rpy
+            current_time = rospy.Time.now()
+
             if abs(roll) > self.flipped_threshold or abs(pitch) > self.flipped_threshold:
-                rospy.loginfo(f'is_flipped')
-                return True
+                if not hasattr(self, 'flip_start_time'):
+                    self.flip_start_time = current_time
+                elif (current_time - self.flip_start_time).to_sec() > flipped_time_threshold:
+                    rospy.loginfo(f'Robot is flipped for more than {flipped_time_threshold} second.')
+                    return True
+            else:
+                if hasattr(self, 'flip_start_time'):
+                    del self.flip_start_time
+
         return False
 
     def create_motor_cmd(self, mode, q, dq, tau, Kp, Kd):
