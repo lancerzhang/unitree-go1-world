@@ -27,12 +27,15 @@ class Go1Env(gym.Env):
         }
         self.publishers = {name: rospy.Publisher(f'/go1_gazebo/{name}_controller/command', MotorCmd, queue_size=10) for
                            group in self.joint_groups.values() for name in group}
-        self.motor_states = {name: MotorState() for group in self.joint_groups.values() for name in group}
+        self.motor_states = {name: None for group in self.joint_groups.values() for name in group}
+        self.last_motor_state_time = {name: rospy.Time.now() for group in self.joint_groups.values() for name in group}
 
         for group in self.joint_groups.values():
             for name in group:
                 rospy.Subscriber(f'/go1_gazebo/{name}_controller/state', MotorState, self.create_callback(name))
 
+        self.current_imu = None
+        self.last_imu_time = rospy.Time.now()
         rospy.Subscriber('/trunk_imu', Imu, self.imu_callback)
         self.reset_world_service = rospy.ServiceProxy('/gazebo/reset_world', Empty)
 
@@ -49,17 +52,34 @@ class Go1Env(gym.Env):
         # Observations: motor states (position, velocity) + IMU data
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(12 * 2 + 10,), dtype=np.float32)
 
-        self.current_imu = None
         self.flipped_threshold = 1.0  # Threshold to determine if the robot is flipped
+
+        self.check_messages_timer = rospy.Timer(rospy.Duration(1.0), self.check_messages)  # Check every second
 
     def create_callback(self, name):
         def callback(msg):
             self.motor_states[name] = msg
+            self.last_motor_state_time[name] = rospy.Time.now()
 
         return callback
 
     def imu_callback(self, msg):
         self.current_imu = msg
+        self.last_imu_time = rospy.Time.now()
+
+    def check_messages(self, event):
+        current_time = rospy.Time.now()
+        motor_state_timeout = rospy.Duration(2.0)  # 2 seconds timeout
+        imu_timeout = rospy.Duration(2.0)  # 2 seconds timeout
+
+        for name, last_time in self.last_motor_state_time.items():
+            if current_time - last_time > motor_state_timeout:
+                rospy.logerr(f"Motor state {name} not received for 2 seconds, stopping the program.")
+                rospy.signal_shutdown("Motor state timeout")
+
+        if current_time - self.last_imu_time > imu_timeout:
+            rospy.logerr("IMU state not received for 2 seconds, stopping the program.")
+            rospy.signal_shutdown("IMU state timeout")
 
     def reset(self, seed=None, options=None):
         self.reset_world_service()
@@ -88,7 +108,6 @@ class Go1Env(gym.Env):
 
         # Additional info
         info = {}
-
         if terminated:
             obs, info = self.reset()
 
@@ -99,7 +118,10 @@ class Go1Env(gym.Env):
         for group in self.joint_groups.values():
             for name in group:
                 state = self.motor_states[name]
-                obs.extend([state.q, state.dq])
+                if state:
+                    obs.extend([state.q, state.dq])
+                else:
+                    obs.extend([0.0, 0.0])
 
         if self.current_imu:
             imu_data = self.current_imu
@@ -127,8 +149,7 @@ class Go1Env(gym.Env):
             rpy = quat2euler(
                 [self.current_imu.orientation.w, self.current_imu.orientation.x, self.current_imu.orientation.y,
                  self.current_imu.orientation.z])
-            # rospy.loginfo(f'rpy {rpy}')
-            roll, pitch, yaw = rpy
+            roll, pitch = rpy[:2]
             if abs(roll) > self.flipped_threshold or abs(pitch) > self.flipped_threshold:
                 rospy.loginfo(f'is_flipped')
                 return True
