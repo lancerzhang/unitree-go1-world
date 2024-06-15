@@ -7,6 +7,9 @@ from std_srvs.srv import Empty
 from transforms3d.euler import quat2euler
 from unitree_legged_msgs.msg import MotorCmd, MotorState
 
+# Import the utility functions
+from utils import check_messages, is_flipped, create_motor_cmd
+
 go1_Hip_max = 1.047
 go1_Hip_min = -1.047
 go1_Thigh_max = 2.966
@@ -54,7 +57,8 @@ class Go1Env(gym.Env):
 
         self.flipped_threshold = 1.0  # Threshold to determine if the robot is flipped
 
-        self.check_messages_timer = rospy.Timer(rospy.Duration(1.0), self.check_messages)  # Check every second
+        # Check every second
+        self.check_messages_timer = rospy.Timer(rospy.Duration(1), lambda event: check_messages(self, event))
 
     def create_callback(self, name):
         def callback(msg):
@@ -67,20 +71,6 @@ class Go1Env(gym.Env):
         self.current_imu = msg
         self.last_imu_time = rospy.Time.now()
 
-    def check_messages(self, event):
-        current_time = rospy.Time.now()
-        motor_state_timeout = rospy.Duration(2.0)  # 2 seconds timeout
-        imu_timeout = rospy.Duration(2.0)  # 2 seconds timeout
-
-        for name, last_time in self.last_motor_state_time.items():
-            if current_time - last_time > motor_state_timeout:
-                rospy.logerr(f"Motor state {name} not received for 2 seconds, stopping the program.")
-                rospy.signal_shutdown("Motor state timeout")
-
-        if current_time - self.last_imu_time > imu_timeout:
-            rospy.logerr("IMU state not received for 2 seconds, stopping the program.")
-            rospy.signal_shutdown("IMU state timeout")
-
     def reset(self, seed=None, options=None):
         self.reset_world_service()
         rospy.sleep(1)  # Wait for the reset to complete
@@ -92,7 +82,7 @@ class Go1Env(gym.Env):
         # Apply action
         for i, group in enumerate(self.joint_groups.values()):
             for j, name in enumerate(group):
-                self.publishers[name].publish(self.create_motor_cmd(10, action[i * 3 + j], 0.0, 0.0, 300.0, 15.0))
+                self.publishers[name].publish(create_motor_cmd(10, action[i * 3 + j], 0.0, 0.0, 300.0, 15.0))
 
         self.rate.sleep()
 
@@ -101,9 +91,7 @@ class Go1Env(gym.Env):
 
         # Calculate reward
         reward = self._compute_reward(obs, action)
-
-        # Check if done
-        terminated = self._is_flipped()
+        terminated = is_flipped(self)
         truncated = False
 
         # Additional info
@@ -143,37 +131,6 @@ class Go1Env(gym.Env):
     def _compute_reward(self, obs, action):
         # Define a reward function
         return -np.sum(np.square(action))  # Simple reward for minimizing action effort
-
-    def _is_flipped(self):
-        if self.current_imu:
-            flipped_time_threshold = 10.0  # 10 second threshold
-            rpy = quat2euler(
-                [self.current_imu.orientation.w, self.current_imu.orientation.x, self.current_imu.orientation.y,
-                 self.current_imu.orientation.z])
-            roll, pitch, yaw = rpy
-            current_time = rospy.Time.now()
-
-            if abs(roll) > self.flipped_threshold or abs(pitch) > self.flipped_threshold:
-                if not hasattr(self, 'flip_start_time'):
-                    self.flip_start_time = current_time
-                elif (current_time - self.flip_start_time).to_sec() > flipped_time_threshold:
-                    rospy.loginfo(f'Robot is flipped for more than {flipped_time_threshold} second.')
-                    return True
-            else:
-                if hasattr(self, 'flip_start_time'):
-                    del self.flip_start_time
-
-        return False
-
-    def create_motor_cmd(self, mode, q, dq, tau, Kp, Kd):
-        motor_cmd = MotorCmd()
-        motor_cmd.mode = mode
-        motor_cmd.q = q
-        motor_cmd.dq = dq
-        motor_cmd.tau = tau
-        motor_cmd.Kp = Kp
-        motor_cmd.Kd = Kd
-        return motor_cmd
 
 
 if __name__ == "__main__":
