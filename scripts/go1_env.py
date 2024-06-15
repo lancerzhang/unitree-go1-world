@@ -42,7 +42,7 @@ class Go1Env(gym.Env):
         rospy.Subscriber('/trunk_imu', Imu, self.imu_callback)
         self.reset_world_service = rospy.ServiceProxy('/gazebo/reset_world', Empty)
 
-        self.rate = rospy.Rate(500)  # 500 Hz
+        self.rate = rospy.Rate(30)  # 30 Hz
 
         # Define action and observation space
         # Actions: desired angles for all 12 joints
