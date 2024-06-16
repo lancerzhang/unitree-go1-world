@@ -2,3 +2,5 @@ stable-baselines3
 gymnasium
 numpy
 transforms3d
+pycuda
+opencv-python-headless

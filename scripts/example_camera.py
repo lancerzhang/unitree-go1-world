@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import time
-
 import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
@@ -21,6 +20,10 @@ class CameraProcessor:
     def image_callback(self, data):
         # Convert ROS Image message to OpenCV image
         cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+
+        # Get image resolution
+        height, width, _ = cv_image.shape
+        rospy.loginfo(f"Image resolution: {width}x{height}")
 
         # Process image (you can add your image processing code here)
 
