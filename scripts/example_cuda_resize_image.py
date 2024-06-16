@@ -1,9 +1,8 @@
-import cv2
+import time
+
 import numpy as np
-import pycuda.autoinit
 import pycuda.driver as cuda
 from pycuda.compiler import SourceModule
-import time
 
 mod = SourceModule("""
 __global__ void resize_images(unsigned char *input, unsigned char *output, int width, int height, int new_width, int new_height, float scale_factor, int num_images) {
@@ -36,8 +35,8 @@ def resize_images_gpu(images, scale_factor):
 
     block_size = (16, 16, 1)
     grid_size = (
-    int((new_width + block_size[0] - 1) / block_size[0]), int((new_height + block_size[1] - 1) / block_size[1]),
-    num_images)
+        int((new_width + block_size[0] - 1) / block_size[0]), int((new_height + block_size[1] - 1) / block_size[1]),
+        num_images)
     resize_images_kernel(input_gpu, output_gpu, np.int32(width), np.int32(height), np.int32(new_width),
                          np.int32(new_height), np.float32(1.0 / scale_factor), np.int32(num_images), block=block_size,
                          grid=grid_size)

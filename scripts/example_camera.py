@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import time
+
 import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
@@ -40,6 +41,7 @@ class CameraProcessor:
             rospy.loginfo(f"Total images received: {self.image_count}")
             rospy.loginfo(f"Average images per second: {avg_images_per_sec:.2f}")
             self.last_print_time = time.time()
+
 
 if __name__ == '__main__':
     try:
