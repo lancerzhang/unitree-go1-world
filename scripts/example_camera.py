@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 import time
-
 import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
+import cv2
 
 
 class CameraProcessor:
@@ -24,9 +24,12 @@ class CameraProcessor:
 
         # Get image resolution
         height, width, _ = cv_image.shape
-        rospy.loginfo(f"Image resolution: {width}x{height}")
+        # rospy.loginfo(f"Image resolution: {width}x{height}")
 
-        # Process image (you can add your image processing code here)
+        # Save the image to disk
+        image_path = f"saved_image.jpg"
+        cv2.imwrite(image_path, cv_image)
+        # rospy.loginfo(f"Image saved to: {image_path}")
 
         # Update image count
         self.image_count += 1
