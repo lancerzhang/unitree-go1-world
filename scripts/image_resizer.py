@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
 from concurrent.futures import ThreadPoolExecutor
-
 import cv2
 import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
-
+from std_msgs.msg import Header
 
 class ImageResizer:
     def __init__(self):
@@ -19,7 +18,7 @@ class ImageResizer:
 
         # 为每个缩放倍数创建一个发布者
         for scale in self.scale_factors:
-            pub = rospy.Publisher(f'/camera_face/color/image_resized_{scale}x', Image, queue_size=1)
+            pub = rospy.Publisher(f'/camera_face/color/image_resized_{scale}x', Image, queue_size=2)
             self.publishers.append((scale, pub))
 
         # 创建线程池
@@ -28,24 +27,25 @@ class ImageResizer:
     def image_callback(self, msg):
         # Convert ROS Image message to OpenCV image
         cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+        header = Header(stamp=rospy.Time.now())
 
         # 并行处理图像缩放和发布
         futures = []
         for scale, pub in self.publishers:
-            futures.append(self.executor.submit(self.resize_and_publish, cv_image, scale, pub))
+            futures.append(self.executor.submit(self.resize_and_publish, cv_image, scale, pub, header))
 
         # 等待所有线程完成
         for future in futures:
             future.result()
 
-    def resize_and_publish(self, cv_image, scale, pub):
+    def resize_and_publish(self, cv_image, scale, pub, header):
         if scale == 1:
             resized_image = cv_image
         else:
             resized_image = cv2.resize(cv_image, (cv_image.shape[1] // scale, cv_image.shape[0] // scale))
         resized_image_msg = self.bridge.cv2_to_imgmsg(resized_image, encoding='bgr8')
+        resized_image_msg.header = header
         pub.publish(resized_image_msg)
-
 
 if __name__ == '__main__':
     rospy.init_node('image_resizer', anonymous=True)

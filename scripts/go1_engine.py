@@ -15,8 +15,8 @@ class CustomTrainingAlgorithm:
     @timeout(step_interval)
     def step_with_timeout(self):
         # test timeout func
-        sleep_time = random.uniform(0.03, 0.05)
-        time.sleep(sleep_time)
+        # sleep_time = random.uniform(0.03, 0.05)
+        # time.sleep(sleep_time)
 
         return self.env.step()
 
