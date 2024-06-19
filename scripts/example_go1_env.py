@@ -8,7 +8,7 @@ from transforms3d.euler import quat2euler
 from unitree_legged_msgs.msg import MotorCmd, MotorState
 
 # Import the utility functions
-from utils import check_messages, is_flipped, create_motor_cmd, reset_env
+from env_utils import check_messages, is_flipped, create_motor_cmd, reset_env
 
 go1_Hip_max = 1.047
 go1_Hip_min = -1.047
@@ -42,7 +42,7 @@ class Go1Env(gym.Env):
         rospy.Subscriber('/trunk_imu', Imu, self.imu_callback)
         self.reset_world_service = rospy.ServiceProxy('/gazebo/reset_world', Empty)
 
-        self.rate = rospy.Rate(30)  # 30 Hz
+        self.rate = rospy.Rate(25)  # 25 Hz
 
         # Define action and observation space
         # Actions: desired angles for all 12 joints
