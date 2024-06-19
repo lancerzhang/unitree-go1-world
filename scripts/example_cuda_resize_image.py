@@ -65,8 +65,8 @@ def receive_images(num_images, width, height):
 
 # 主函数
 def main():
-    # 每秒接收30张图片
-    num_images = 30
+    # 每秒接收25张图片
+    num_images = 25
     width, height = 928, 800
     scale_factors = [2, 4, 8, 16]
 
