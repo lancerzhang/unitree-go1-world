@@ -14,7 +14,7 @@ class ImageResizer:
         self.image_sub = rospy.Subscriber('/camera_face/color/image_raw', Image, self.image_callback)
 
         # 读取参数
-        self.scale_factors = rospy.get_param('~scale_factors', [1, 2, 4, 8, 16])
+        self.scale_factors = rospy.get_param('~scale_factors', [1, 2, 4, 8, 16, 32])
         self.publishers = []
 
         # 为每个缩放倍数创建一个发布者

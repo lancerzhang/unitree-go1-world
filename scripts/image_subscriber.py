@@ -9,16 +9,10 @@ from sensor_msgs.msg import Image
 class ImageSubscriber:
     def __init__(self):
         self.bridge = CvBridge()
-        self.resized_1x_sub = rospy.Subscriber('/camera_face/color/image_resized_1x', Image,
-                                               self.resized_image_callback, callback_args=1)
-        self.resized_2x_sub = rospy.Subscriber('/camera_face/color/image_resized_2x', Image,
-                                               self.resized_image_callback, callback_args=2)
-        self.resized_4x_sub = rospy.Subscriber('/camera_face/color/image_resized_4x', Image,
-                                               self.resized_image_callback, callback_args=4)
-        self.resized_8x_sub = rospy.Subscriber('/camera_face/color/image_resized_8x', Image,
-                                               self.resized_image_callback, callback_args=8)
-        self.resized_16x_sub = rospy.Subscriber('/camera_face/color/image_resized_16x', Image,
-                                                self.resized_image_callback, callback_args=16)
+        scales = [1, 2, 4, 8, 16, 32]
+        for scale in scales:
+            rospy.Subscriber(f'/camera_face/color/image_resized_{scale}x', Image,
+                             self.resized_image_callback, callback_args=scale)
 
     def resized_image_callback(self, msg, scale):
         cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
