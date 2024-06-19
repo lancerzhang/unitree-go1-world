@@ -1,6 +1,6 @@
 import time
 
-from go1_env import Go1Env
+from example_go1_env import Go1Env
 
 
 class CustomTrainingAlgorithm:

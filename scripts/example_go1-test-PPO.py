@@ -1,7 +1,7 @@
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 
-from go1_env import Go1Env
+from example_go1_env import Go1Env
 
 # Create the environment
 env = Go1Env()
