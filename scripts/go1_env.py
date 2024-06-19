@@ -1,26 +1,20 @@
-import gymnasium as gym
 import rospy
 from std_srvs.srv import Empty
 
-# Import the utility functions
 from env_utils import reset_env
 
 
-class Go1Env(gym.Env):
+class Go1Env():
     def __init__(self):
         super(Go1Env, self).__init__()
         rospy.init_node('go1_rl_env', anonymous=True)
         self.reset_world_service = rospy.ServiceProxy('/gazebo/reset_world', Empty)
-        self.rate = rospy.Rate(25)  # 25 Hz
 
     def reset(self, seed=None, options=None):
         return reset_env(self)
 
-    def step(self, action):
-        self.rate.sleep()
-
+    def step(self):
         terminated = False
-
         return terminated
 
 
