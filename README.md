@@ -32,10 +32,13 @@ To set up your simulation environment, follow these steps:
 1. **Clone the `gazebo_worlds` Repository**:
    - Download the `gazebo_worlds` package from [macc-n/gazebo_worlds](https://github.com/macc-n/gazebo_worlds) and unzip it into your `catkin_ws/src/` folder.
 
-2. **Clone the `ros-go1-world` Repository**:
+2. **Clone the `unitree_ros_to_real` Repository**:
+   - Download the `unitree_ros_to_real` package from [unitreerobotics/unitree_ros_to_real](https://github.com/unitreerobotics/unitree_ros_to_real) and unzip unitree_legged_msgs into your `catkin_ws/src/` folder.
+
+3. **Clone the `ros-go1-world` Repository**:
    - Download this `ros-go1-world` repository and unzip it into your `catkin_ws/src/` folder.
 
-3. **Build the Workspace**:
+4. **Build the Workspace**:
    - Navigate to your catkin workspace directory:
      ```bash
      cd ~/catkin_ws
