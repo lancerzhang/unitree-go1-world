@@ -8,7 +8,7 @@ from transforms3d.euler import quat2euler
 from unitree_legged_msgs.msg import MotorCmd, MotorState
 
 # Import the utility functions
-from env_utils import check_messages, is_flipped, create_motor_cmd, reset_env
+from utils_env import check_messages, is_flipped, create_motor_cmd, reset_env
 
 go1_Hip_max = 1.047
 go1_Hip_min = -1.047

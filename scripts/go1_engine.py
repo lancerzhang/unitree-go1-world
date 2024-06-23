@@ -1,7 +1,7 @@
 import random
 import time
 
-from engine_utils import timeout
+from utils_engine import timeout
 from go1_env import Go1Env
 
 step_frequency = 25  # 25 Hz

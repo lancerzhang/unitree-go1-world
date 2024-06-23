@@ -3,7 +3,7 @@ from sensor_msgs.msg import Image
 from std_srvs.srv import Empty
 from collections import deque
 
-from env_utils import reset_env
+from utils_env import reset_env
 from utils import get_synced_images
 
 
