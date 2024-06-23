@@ -7,20 +7,18 @@ from env_utils import reset_env
 from utils import get_synced_images
 
 
-class Go1Env():
+class Go1Env:
     def __init__(self):
         super(Go1Env, self).__init__()
-        rospy.init_node('go1_rl_env', anonymous=True)
+        rospy.init_node('go1_env', anonymous=True)
         self.reset_world_service = rospy.ServiceProxy('/gazebo/reset_world', Empty)
-
         # Initialize image subscribers and queues for each scale
         self.scales = [1, 2, 4, 8, 16, 32]
+        self.last_image_time = None
         self.image_queues = {scale: deque(maxlen=2) for scale in self.scales}
         for scale in self.scales:
             rospy.Subscriber(f'/camera_face/color/image_resized_{scale}x', Image, self.image_callback,
                              callback_args=scale)
-
-        self.last_image_time = None
 
     def image_callback(self, msg, scale):
         self.image_queues[scale].append(msg)

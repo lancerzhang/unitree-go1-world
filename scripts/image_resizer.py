@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
 from concurrent.futures import ThreadPoolExecutor
+
 import cv2
 import rospy
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 from std_msgs.msg import Header
+
 
 class ImageResizer:
     def __init__(self):
@@ -46,6 +48,7 @@ class ImageResizer:
         resized_image_msg = self.bridge.cv2_to_imgmsg(resized_image, encoding='bgr8')
         resized_image_msg.header = header
         pub.publish(resized_image_msg)
+
 
 if __name__ == '__main__':
     rospy.init_node('image_resizer', anonymous=True)
