@@ -67,6 +67,7 @@ def receive_images(num_images, width, height):
 def main():
     # 每秒接收30张图片
     num_images = 30
+    # image size of unitree camera is 928 x 800
     width, height = 928, 800
     scale_factors = [2, 4, 8, 16]
 
